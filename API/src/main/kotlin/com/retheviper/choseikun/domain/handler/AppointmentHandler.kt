@@ -1,6 +1,9 @@
 package com.retheviper.choseikun.domain.handler
 
-import com.retheviper.choseikun.domain.common.container.*
+import com.retheviper.choseikun.domain.common.container.Appointment
+import com.retheviper.choseikun.domain.common.container.AppointmentDto
+import com.retheviper.choseikun.domain.common.container.AppointmentForm
+import com.retheviper.choseikun.domain.common.container.Candidate
 import com.retheviper.choseikun.infrastructure.repository.AppointmentRepository
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -56,7 +59,14 @@ open class AppointmentHandler(
                                 id = null,
                                 title = it.title,
                                 description = it.description,
-                                candidates = it.candidates,
+                                candidates = it.candidates.map { f ->
+                                    Candidate(
+                                        id = null,
+                                        appointmentId = f.appointmentId,
+                                        date = f.date,
+                                        candidateParticipants = null
+                                    )
+                                },
                                 limit = it.limit
                             )
                         ).subscribe()
