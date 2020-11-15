@@ -7,7 +7,7 @@ data class Appointment(
     @Id var id: Long?,
     val title: String,
     val description: String?,
-    val candidates: List<CandidateDto>,
+    val candidates: List<Candidate>,
     val limit: LocalDate?
 )
 
@@ -21,6 +21,6 @@ data class AppointmentDto(
 data class AppointmentForm(
     val title: String,
     val description: String?,
-    val candidates: List<CandidateDto>,
+    val candidates: List<CandidateForm>,
     val limit: LocalDate?
 )

@@ -5,9 +5,9 @@ import org.springframework.data.annotation.Id
 
 data class Participant(
     @Id var id: Long?,
-    val candidateParticipants: List<CandidateParticipant>?,
     val name: String,
-    val comment: String
+    val comment: String,
+    val candidateParticipants: List<CandidateParticipant>?
 )
 
 data class ParticipantDto(
@@ -18,6 +18,5 @@ data class ParticipantDto(
 
 data class ParticipantForm(
     val name: String,
-    val comment: String,
-    val candidateParticipants: List<CandidateParticipantForm>?
+    val comment: String
 )

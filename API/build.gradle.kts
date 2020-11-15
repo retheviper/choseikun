@@ -6,6 +6,8 @@ plugins {
     war
     kotlin("jvm") version "1.4.10"
     kotlin("plugin.spring") version "1.4.10"
+    id("org.jetbrains.dokka") version "1.4.10.2"
+
 }
 
 group = "com.retheviper.choseikun"
@@ -28,6 +30,7 @@ dependencies {
     implementation("org.junit.jupiter:junit-jupiter:5.4.2")
     runtimeOnly("com.h2database:h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    dokkaGfmPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:1.4.10.2")
 }
 
 tasks.withType<Test> {

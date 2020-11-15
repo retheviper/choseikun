@@ -26,7 +26,14 @@ open class CandidateHandler(
     // TODO Map participant
     internal fun getCandidates(appointmentId: Long): Flux<CandidateDto> {
         return repository.findAllByAppointmentId(appointmentId)
-            .map { CandidateDto(appointmentId = appointmentId, participants = null, date = it.date, recommend = null) }
+            .map {
+                CandidateDto(
+                    appointmentId = it.appointmentId,
+                    date = it.date,
+                    recommend = null,
+                    candidateParticipants = null
+                )
+            }
     }
 
     fun createCandidate(request: ServerRequest): Mono<ServerResponse> =
@@ -65,9 +72,9 @@ open class CandidateHandler(
                         }
                 }
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.CONFLICT)))
-                .flatMap { Candidate ->
+                .flatMap {
                     Mono.fromCallable {
-                        repository.save(Candidate).subscribe()
+                        repository.save(it).subscribe()
                     }
                 })
 }
