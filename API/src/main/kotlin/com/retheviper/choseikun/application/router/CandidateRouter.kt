@@ -1,6 +1,6 @@
 package com.retheviper.choseikun.application.router
 
-import com.retheviper.choseikun.domain.handler.AppointmentHandler
+import com.retheviper.choseikun.domain.handler.CandidateHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.function.server.RequestPredicates.path
@@ -8,16 +8,15 @@ import org.springframework.web.reactive.function.server.RouterFunctions.nest
 import org.springframework.web.reactive.function.server.router
 
 @Configuration
-open class AppointmentRouter(private val handler: AppointmentHandler) {
+open class CandidateRouter(private val handler: CandidateHandler) {
 
     @Bean
-    open fun routeAppointment() =
-        nest(path("/api/v1/web/appointments"),
+    open fun routeCandidate() =
+        nest(path("/api/v1/web/appointments/{appointmentId}/candidates"),
             router {
                 listOf(
-                    GET("/{appointmentId}", handler::getAppointment),
-                    POST("/", handler::createAppointment),
-                    PUT("/{appointmentId}", handler::updateAppointment)
+                    POST("/", handler::createCandidate),
+                    PUT("/{candidateId}", handler::updateCandidate)
                 )
             }
         )

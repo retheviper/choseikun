@@ -6,15 +6,15 @@ import org.springframework.data.annotation.Id
 data class Candidate(
     @Id var id: Long?,
     val appointmentId: Long,
-    val participants: List<Participant>?,
-    val date: String
+    val date: String,
+    val candidateParticipants: List<CandidateParticipant>?
 )
 
 data class CandidateDto(
     val appointmentId: Long,
-    val participants: List<ParticipantDto>?,
     val date: String,
-    val recommend: Boolean?
+    val recommend: Boolean?,
+    val candidateParticipants: List<CandidateParticipantDto>?
 )
 
 data class CandidateForm(

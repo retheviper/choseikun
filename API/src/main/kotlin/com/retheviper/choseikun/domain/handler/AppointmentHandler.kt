@@ -19,7 +19,7 @@ open class AppointmentHandler(
     private val candidateHandler: CandidateHandler
 ) {
 
-    private val id: String = "id"
+    private val id: String = "appointmentId"
 
     fun getAppointment(request: ServerRequest): Mono<ServerResponse> {
         val id = request.pathVariable(id).toLong()

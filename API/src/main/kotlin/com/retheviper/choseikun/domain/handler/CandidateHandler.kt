@@ -3,8 +3,6 @@ package com.retheviper.choseikun.domain.handler
 import com.retheviper.choseikun.domain.common.container.Candidate
 import com.retheviper.choseikun.domain.common.container.CandidateDto
 import com.retheviper.choseikun.domain.common.container.CandidateForm
-import com.retheviper.choseikun.domain.common.container.ParticipantDto
-import com.retheviper.choseikun.domain.common.value.Join
 import com.retheviper.choseikun.infrastructure.repository.CandidateRepository
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -19,13 +17,17 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Component
-open class CandidateHandler(internal val repository: CandidateRepository) {
+open class CandidateHandler(
+    private val repository: CandidateRepository
+) {
 
-    private val id: String = "id"
+    private val id: String = "candidateId"
 
-    internal fun getCandidates(appointmentId: Long): Flux<CandidateDto> =
-        repository.findAllByAppointmentId(appointmentId)
-            .map(this::mapDto)
+    // TODO Map participant
+    internal fun getCandidates(appointmentId: Long): Flux<CandidateDto> {
+        return repository.findAllByAppointmentId(appointmentId)
+            .map { CandidateDto(appointmentId = appointmentId, participants = null, date = it.date, recommend = null) }
+    }
 
     fun createCandidate(request: ServerRequest): Mono<ServerResponse> =
         accepted()
@@ -38,10 +40,10 @@ open class CandidateHandler(internal val repository: CandidateRepository) {
                             Candidate(
                                 id = null,
                                 appointmentId = it.appointmentId,
-                                participants = null,
+                                candidateParticipants = null,
                                 date = it.date
                             )
-                        ).map(this::mapDto).subscribe()
+                        ).subscribe()
                     }
                 })
 
@@ -57,7 +59,7 @@ open class CandidateHandler(internal val repository: CandidateRepository) {
                             Candidate(
                                 id = it.id,
                                 appointmentId = it.appointmentId,
-                                participants = it.participants,
+                                candidateParticipants = it.candidateParticipants,
                                 date = it.date
                             )
                         }
@@ -65,39 +67,7 @@ open class CandidateHandler(internal val repository: CandidateRepository) {
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.CONFLICT)))
                 .flatMap { Candidate ->
                     Mono.fromCallable {
-                        repository.save(Candidate).map(this::mapDto).subscribe()
+                        repository.save(Candidate).subscribe()
                     }
                 })
-
-    private fun mapDto(entity: Candidate): CandidateDto {
-        var ok = 0
-        var ng = 0
-        val participants = entity.participants
-            ?.map {
-                when (it.join) {
-                    Join.OK -> {
-                        ok++
-                    }
-                    Join.PEND -> {
-                        ok++
-                        ng++
-                    }
-                    Join.NG -> {
-                        ng++
-                    }
-                }
-                ParticipantDto(
-                    name = it.name,
-                    candidate = it.candidate,
-                    join = it.join,
-                    comment = it.comment
-                )
-            }
-        return CandidateDto(
-            appointmentId = entity.appointmentId,
-            participants = participants,
-            date = entity.date,
-            recommend = ok > ng
-        )
-    }
 }
