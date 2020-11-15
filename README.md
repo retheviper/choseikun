@@ -8,10 +8,10 @@ In Construction!
 
 ## Used
 
-Kotlin
-Spring WebFlux
-Spring Data R2DBC
+- Kotlin
+- Spring WebFlux
+- Spring Data R2DBC
 
-and
+### and
 
-(maybe) Svelte
+- (maybe) Svelte
