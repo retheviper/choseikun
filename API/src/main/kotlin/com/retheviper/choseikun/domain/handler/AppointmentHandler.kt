@@ -1,9 +1,10 @@
 package com.retheviper.choseikun.domain.handler
 
-import com.retheviper.choseikun.domain.common.container.Appointment
-import com.retheviper.choseikun.domain.common.container.AppointmentDto
-import com.retheviper.choseikun.domain.common.container.AppointmentForm
+import com.retheviper.choseikun.domain.common.container.*
+import com.retheviper.choseikun.domain.common.value.Join
 import com.retheviper.choseikun.infrastructure.repository.AppointmentRepository
+import com.retheviper.choseikun.infrastructure.repository.CandidateRepository
+import com.retheviper.choseikun.infrastructure.repository.ParticipantRepository
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -16,7 +17,11 @@ import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Mono
 
 @Component
-open class AppointmentHandler(private val repository: AppointmentRepository) {
+open class AppointmentHandler(
+    private val aRepository: AppointmentRepository,
+    private val cRepository: CandidateRepository,
+    private val pRepository: ParticipantRepository
+) {
 
     private val id: String = "id"
 
@@ -24,9 +29,18 @@ open class AppointmentHandler(private val repository: AppointmentRepository) {
         ok()
             .contentType(MediaType.APPLICATION_JSON)
             .body(
-                repository.findById(request.pathVariable(id).toLong())
-                .map { AppointmentDto::class.java }
-                .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND))))
+                aRepository.findById(request.pathVariable(id).toLong())
+                    .zipWith(cRepository.findAllByAppointmentId(1).map(this::mapCandidateDto).collectList())
+                    .map {
+                        AppointmentDto(
+                            title = it.t1.title,
+                            description = it.t1.description,
+                            candidates = it.t2,
+                            limit = it.t1.limit
+                        )
+                    }
+                    .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND)))
+            )
 
     fun createAppointment(request: ServerRequest): Mono<ServerResponse> =
         accepted()
@@ -35,7 +49,7 @@ open class AppointmentHandler(private val repository: AppointmentRepository) {
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.BAD_REQUEST)))
                 .flatMap {
                     Mono.fromCallable {
-                        repository.save(
+                        aRepository.save(
                             Appointment(
                                 id = null,
                                 title = it.title,
@@ -53,7 +67,7 @@ open class AppointmentHandler(private val repository: AppointmentRepository) {
             .body(request.bodyToMono(AppointmentForm::class.java)
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.BAD_REQUEST)))
                 .flatMap {
-                    repository.findById(request.pathVariable(id).toLong())
+                    aRepository.findById(request.pathVariable(id).toLong())
                         .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND)))
                         .map {
                             Appointment(
@@ -68,7 +82,35 @@ open class AppointmentHandler(private val repository: AppointmentRepository) {
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.CONFLICT)))
                 .flatMap { Appointment ->
                     Mono.fromCallable {
-                        repository.save(Appointment).subscribe()
+                        aRepository.save(Appointment).subscribe()
                     }.map { AppointmentDto::class.java }
                 })
+
+    private fun mapCandidateDto(entity: Candidate): CandidateDto {
+        var ok = 0
+        var ng = 0
+        val participants = entity.participants
+            ?.map {
+                when (it.join) {
+                    Join.OK -> {
+                        ok++
+                    }
+                    Join.NG -> {
+                        ng++
+                    }
+                }
+                ParticipantDto(
+                    name = it.name,
+                    candidate = it.candidate,
+                    join = it.join,
+                    comment = it.comment
+                )
+            }
+        return CandidateDto(
+            appointmentId = entity.appointmentId,
+            participants = participants,
+            date = entity.date,
+            recommend = ok > ng
+        )
+    }
 }
