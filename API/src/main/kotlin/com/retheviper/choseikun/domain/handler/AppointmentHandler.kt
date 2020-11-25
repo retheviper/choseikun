@@ -3,7 +3,7 @@ package com.retheviper.choseikun.domain.handler
 import com.retheviper.choseikun.domain.common.container.Appointment
 import com.retheviper.choseikun.domain.common.container.AppointmentDto
 import com.retheviper.choseikun.domain.common.container.AppointmentForm
-import com.retheviper.choseikun.domain.common.container.Candidate
+import com.retheviper.choseikun.domain.common.container.CandidateDto
 import com.retheviper.choseikun.infrastructure.repository.AppointmentRepository
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -25,24 +25,13 @@ open class AppointmentHandler(
     private val id: String = "appointmentId"
 
     fun getAppointment(request: ServerRequest): Mono<ServerResponse> {
-        val id = request.pathVariable(id).toLong()
+        val appointmentId = request.pathVariable(id).toLong()
         return ok()
             .contentType(MediaType.APPLICATION_JSON)
             .body(
-                repository.findById(id)
-                    .zipWith(
-                        candidateHandler
-                            .getCandidates(id)
-                            .collectList()
-                    )
-                    .map {
-                        AppointmentDto(
-                            title = it.t1.title,
-                            description = it.t1.description,
-                            candidates = it.t2,
-                            limit = it.t1.limit
-                        )
-                    }
+                repository.findById(appointmentId)
+                    .zipWith(candidateHandler.getCandidates(appointmentId).collectList())
+                    .map { mapDto(it.t1, it.t2) }
                     .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND)))
             )
     }
@@ -52,49 +41,50 @@ open class AppointmentHandler(
             .contentType(MediaType.APPLICATION_JSON)
             .body(request.bodyToMono(AppointmentForm::class.java)
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.BAD_REQUEST)))
-                .flatMap {
-                    Mono.fromCallable {
-                        repository.save(
-                            Appointment(
-                                id = null,
-                                title = it.title,
-                                description = it.description,
-                                candidates = it.candidates.map { f ->
-                                    Candidate(
-                                        id = null,
-                                        appointmentId = f.appointmentId,
-                                        date = f.date,
-                                        candidateParticipants = null
-                                    )
-                                },
-                                limit = it.limit
-                            )
-                        ).subscribe()
-                    }.map { AppointmentDto::class.java }
+                .map {
+                    it.candidates?.forEach(candidateHandler::createCandidate)
+                    repository.save(
+                        Appointment(
+                            id = null,
+                            title = it.title,
+                            description = it.description,
+                            limit = it.limit
+                        )
+                    ).map { entity -> mapDto(entity, null) }
                 })
 
-    fun updateAppointment(request: ServerRequest): Mono<ServerResponse> =
-        ok()
+
+    fun updateAppointment(request: ServerRequest): Mono<ServerResponse> {
+        val appointmentId = request.pathVariable(id).toLong()
+        return ok()
             .contentType(MediaType.APPLICATION_JSON)
             .body(request.bodyToMono(AppointmentForm::class.java)
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.BAD_REQUEST)))
-                .flatMap {
-                    repository.findById(request.pathVariable(id).toLong())
+                .flatMap { form ->
+                    repository.findById(appointmentId)
                         .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND)))
                         .map {
                             Appointment(
                                 id = it.id,
-                                title = it.title,
-                                description = it.description,
-                                candidates = it.candidates,
-                                limit = it.limit
+                                title = form.title,
+                                description = form.description,
+                                limit = form.limit
                             )
                         }
                 }
                 .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.CONFLICT)))
-                .flatMap { Appointment ->
-                    Mono.fromCallable {
-                        repository.save(Appointment).subscribe()
-                    }.map { AppointmentDto::class.java }
+                .map {
+                    repository.save(it)
+                        .zipWith(candidateHandler.getCandidates(appointmentId).collectList())
+                        .map { mapDto(it.t1, it.t2) }
                 })
+    }
+
+    private fun mapDto(appointment: Appointment, candidates: List<CandidateDto>?) =
+        AppointmentDto(
+            title = appointment.title,
+            description = appointment.description,
+            candidates = candidates,
+            limit = appointment.limit
+        )
 }

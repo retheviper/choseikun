@@ -6,5 +6,4 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import reactor.core.publisher.Flux
 
 interface ParticipantRepository : ReactiveCrudRepository<Participant, Long> {
-    fun findAllByCandidateId(candidateId: Long): Flux<Participant>
 }

@@ -6,4 +6,5 @@ import reactor.core.publisher.Flux
 
 interface CandidateParticipantRepository : ReactiveCrudRepository<CandidateParticipant, Long> {
     fun findAllByCandidateId(candidateId: Long): Flux<CandidateParticipant>
+    fun findAllByParticipantsId(participantsId: Long): Flux<CandidateParticipant>
 }
